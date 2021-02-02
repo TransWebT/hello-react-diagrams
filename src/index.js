@@ -8,8 +8,35 @@ import {
   DiagramWidget,
   DefaultLinkModel
 } from "storm-react-diagrams";
-
 import "./styles.css";
+
+
+var mysql = require('mysql');
+function dbConnect() {
+  var con = mysql.createConnection({
+    host: "localhost",
+    user: "yourusername",
+    password: "yourpassword"
+  });
+
+  con.connect(function(err) {
+    if (err) throw err;
+    console.log("Connected!");
+  });
+  return con;
+}
+
+function readTables(con, database) {
+  sql = "SELECT 1";
+  con.connect(function(err) {
+    if (err) throw err;
+    console.log("Connected!");
+    con.query(sql, function (err, result) {
+      if (err) throw err;
+      console.log("Result: " + result);
+    });
+  });
+}
 
 const ElmArchitecture = () => {
   //1) setup the diagram engine
