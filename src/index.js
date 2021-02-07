@@ -10,34 +10,6 @@ import {
 } from "storm-react-diagrams";
 import "./styles.css";
 
-
-var mysql = require('mysql');
-function dbConnect() {
-  var con = mysql.createConnection({
-    host: "localhost",
-    user: "yourusername",
-    password: "yourpassword"
-  });
-
-  con.connect(function(err) {
-    if (err) throw err;
-    console.log("Connected!");
-  });
-  return con;
-}
-
-function readTables(con, database) {
-  sql = "SELECT 1";
-  con.connect(function(err) {
-    if (err) throw err;
-    console.log("Connected!");
-    con.query(sql, function (err, result) {
-      if (err) throw err;
-      console.log("Result: " + result);
-    });
-  });
-}
-
 const ElmArchitecture = () => {
   //1) setup the diagram engine
   var engine = new DiagramEngine();
@@ -57,12 +29,12 @@ const ElmArchitecture = () => {
   let port3 = node2.addOutPort("Html");
   node2.setPosition(400, 100);
 
-    //3-C) create yet another default node
-    var node3 = new DefaultNodeModel("view", "rgb(192,0,192)");
-    let port4 = node3.addInPort("Model");
-    let port5 = node3.addOutPort("Html");
-    node2.setPosition(600, 100);
-  
+  //3-C) create yet another default node
+  var node3 = new DefaultNodeModel("view", "rgb(192,0,192)");
+  let port4 = node3.addInPort("Model");
+  let port5 = node3.addOutPort("Html");
+  node2.setPosition(600, 100);
+
   // link the ports
   let link1 = port1.link(port2);
   let link2 = port3.link(port4);
