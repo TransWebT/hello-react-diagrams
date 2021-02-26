@@ -31,19 +31,31 @@ function getDatabaseConnection(connectInfo) {
 }
 
 function getSchema(connection, database) { 
+  /*
   let sql = `select table_schema as database_name, table_name
              from information_schema.tables
              where table_type = 'BASE TABLE'
                    and table_schema = '${database}'
              order by database_name, table_name;`
-  console.log(sql);
+  */
+  let sql = `select table_name
+             from information_schema.tables
+             where table_type = 'BASE TABLE'
+                   and table_schema = '${database}'
+             order by table_name;`
+
+
+             console.log(sql);
 
   connection.query(sql, function(error, results, fields) {
     if (error) {
       console.log('error querying: ' + error.stack);
       throw error;
     }
-    console.log(results);
+    results.forEach(function(row) {
+      console.log(row["TABLE_NAME"]);
+    });
+    // console.log(results);
 
 
   });
@@ -64,8 +76,8 @@ function getSchemaForTable(connection, database, table) {
 }
 
 let connection = getDatabaseConnection(connectInfo);
-let schema = getSchema(connection, "world");
-// let schema = getSchema(connection, "sparcs_tdm");
+// let schema = getSchema(connection, "world");
+let schema = getSchema(connection, "sparcs_tdm");
 // console.log(schema);
 
 connection.end(function(err) {
