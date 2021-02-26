@@ -4,8 +4,8 @@ var mysql = require('mysql');
 /*
 var connectInfo = {
   host: "localhost",
-  user: "root",
-  password: "letmein4",
+  user: "",
+  password: "",
   database: "world"
 }
 */
@@ -30,29 +30,24 @@ function getDatabaseConnection(connectInfo) {
   return connection;
 }
 
-function getTableNames(connection, database) { 
-  let sql = `select table_schema as database_name, table_name
-             from information_schema.tables
-             where table_type = 'BASE TABLE'
-                   and table_schema not in ('information_schema','mysql','performance_schema','sys')
-            order by database_name, table_name;`
- /*
+function getSchema(connection, database) { 
   let sql = `select table_schema as database_name, table_name
              from information_schema.tables
              where table_type = 'BASE TABLE'
                    and table_schema = '${database}'
              order by database_name, table_name;`
-  */
-    let tables = connection.query(sql, function(error, results, fields) {
+  console.log(sql);
+
+  connection.query(sql, function(error, results, fields) {
     if (error) {
       console.log('error querying: ' + error.stack);
       throw error;
     }
     console.log(results);
-    return results;
+
+
   });
-  // console.log(tables);
-  return tables;
+  // return tables;
 }
 
 function getSchemaForTable(connection, database, table) {
@@ -69,11 +64,13 @@ function getSchemaForTable(connection, database, table) {
 }
 
 let connection = getDatabaseConnection(connectInfo);
-let tables = getTableNames(connection, "sparcs_tdm");
-console.log(tables);
+let schema = getSchema(connection, "world");
+// let schema = getSchema(connection, "sparcs_tdm");
+// console.log(schema);
 
 connection.end(function(err) {
-  // The connection is terminated now
+  if (err)
+    console.log(`Error closing database connection: ${err}.`);
 });
 
 /*
