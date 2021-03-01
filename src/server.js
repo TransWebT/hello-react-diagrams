@@ -1,5 +1,5 @@
 var express = require('express');
-var mysql = require('mysql');
+var mysql = require('mysql2/promise');
 
 // schemaDoc is iteratively built from schema content read from the database.
 var schemaDoc = {};
@@ -25,42 +25,58 @@ function getDatabaseConnection(connectInfo) {
 	return connection;
 }
 
-function getSchema(req, res, connection, database) {
-	let getTablesSql = `select table_name
-            			from information_schema.tables
-            			where table_type = 'BASE TABLE' and table_schema = '${database}'
-            			order by table_name;`
+async function getSchema(req, res, database) {
+	let connection = await mysql.createConnection(connectInfo);
 
-	connection.query(getTablesSql, function (error, tableResults, fields) {
-		if (error) {
-			console.log('error querying: ' + error.stack);
-			throw error;
-		}
-		tableResults.forEach(function (table) {
-			console.log(table["TABLE_NAME"]);
-			let getFieldsForTableSql = `SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '${database}' AND TABLE_NAME = '${table}';`;
-			/*
-			connection.query(getFieldsForTableSql, function (error, fieldResults, fields) {
-				if (error) {
-					console.log('error querying: ' + error.stack);
-					throw error;
-				}
-				fieldResults.forEach(function (field) {
-					console.log()
-				});
-			});
-			*/
+	let getTableListSql = `select table_name
+            			   from information_schema.tables
+            			   where table_type = 'BASE TABLE' and table_schema = '${database}'
+            			   order by table_name;`
+	try {
+		const [rows, fields] = await connection.query(getTableListSql);
+		rows.forEach(function(tableRow) {
+			tableName=tableRow["TABLE_NAME"];
+			schemaDoc[tableName] = {};
 		});
+	} catch (e) {
+		console.log('caught exception!', e);
+	}
+
+	Object.keys(schemaDoc).forEach(async function(table) {
+		try {
+			let getFieldsForTableSql = `SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '${database}' AND TABLE_NAME = '${table}';`;
+			console.log(getFieldsForTableSql);
+			const [rows, fields] = await connection.query(getFieldsForTableSql);
+			// schemaDoc[table]["columns"] = [];
+			rows.forEach(function(columnRow) {
+				columnName=columnRow["COLUMN_NAME"];
+				dataType=columnRow["DATA_TYPE"];
+				schemaDoc[table][columnName] = dataType;
+				/*
+				columnHash = {};
+				columnHash[columnName] = dataType;
+				schemaDoc[table]["columns"].push(columnHash);
+				*/
+			});
+		} catch (e) {
+			console.log('caught exception!', e);
+		}
+	
 	});
+
+	await connection.end();
+
 }
 
-let connection = getDatabaseConnection(connectInfo);
-getSchema(null, null, connection, database);
+getSchema(null, null, database)
+	.then(() => {
+    	console.log(schemaDoc);
+	})
+	.catch(err => {
+    	console.log('error!', err);
+    	throw err;
+  	});
 
-connection.end(function (err) {
-	if (err)
-		console.log(`Error closing database connection: ${err}.`);
-});
 
 var app = express();
 app.get('/', function (req, res) {
