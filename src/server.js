@@ -8,8 +8,8 @@ var connectInfo = {
 	user: "",
 	password: ""
 };
-var database = "world";
-// var database = "sparcs_tdm";
+// var database = "world";
+var database = "classicmodels";
 
 
 function getDatabaseConnection(connectInfo) {
@@ -61,6 +61,12 @@ async function getSchema(req, res, database) {
 		} catch (e) {
 			console.log('caught exception!', e);
 		}
+
+		// @@@ capture foreign key information:
+		// SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME 
+		// FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+		// WHERE TABLE_SCHEMA = 'classicmodels' and table_name='customers' order by CONSTRAINT_NAME, COLUMN_NAME;
+
 	
 	});
 
