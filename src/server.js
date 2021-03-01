@@ -47,36 +47,44 @@ async function getSchema(req, res, database) {
 			let getFieldsForTableSql = `SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '${database}' AND TABLE_NAME = '${table}';`;
 			console.log(getFieldsForTableSql);
 			const [rows, fields] = await connection.query(getFieldsForTableSql);
-			// schemaDoc[table]["columns"] = [];
+			schemaDoc[table]["columns"] = {};
 			rows.forEach(function(columnRow) {
 				columnName=columnRow["COLUMN_NAME"];
 				dataType=columnRow["DATA_TYPE"];
-				schemaDoc[table][columnName] = dataType;
-				/*
-				columnHash = {};
-				columnHash[columnName] = dataType;
-				schemaDoc[table]["columns"].push(columnHash);
-				*/
+				schemaDoc[table]["columns"][columnName] = dataType;
 			});
 		} catch (e) {
 			console.log('caught exception!', e);
-		}
+		}	
+	});
 
-		// @@@ capture foreign key information:
-		// SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME 
-		// FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
-		// WHERE TABLE_SCHEMA = 'classicmodels' and table_name='customers' order by CONSTRAINT_NAME, COLUMN_NAME;
-
-	
+	Object.keys(schemaDoc).forEach(async function(table) {
+		try {
+			let getKeysForTableSql = `SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME 
+									  FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+									  WHERE TABLE_SCHEMA = '${database}' and table_name='${table}' order by CONSTRAINT_NAME, COLUMN_NAME;`
+			console.log(getKeysForTableSql);
+			const [rows, fields] = await connection.query(getKeysForTableSql);
+			schemaDoc[table]["tableKeys"] = new Array();
+			rows.forEach(function(columnRow) {
+				let tableKey = {}
+				tableKey["columnName"] = columnRow["COLUMN_NAME"];
+				tableKey["constraintName"] = columnRow["CONSTRAINT_NAME"];
+				tableKey["referencedTableName"] = columnRow["REFERENCED_TABLE_NAME"];
+				tableKey["referencedColumnName"] = columnRow["REFERENCED_COLUMN_NAME"];
+				schemaDoc[table]["tableKeys"].push(tableKey);
+			});
+		} catch (e) {
+			console.log('caught exception!', e);
+		}	
 	});
 
 	await connection.end();
-
 }
 
 getSchema(null, null, database)
 	.then(() => {
-    	console.log(schemaDoc);
+    	console.log(JSON.stringify(schemaDoc, null, 4));
 	})
 	.catch(err => {
     	console.log('error!', err);
