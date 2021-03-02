@@ -5,25 +5,13 @@ var mysql = require('mysql2/promise');
 var schemaDoc = {};
 var connectInfo = {
 	host: "localhost",
-	user: "",
-	password: ""
+	user: process.env.MYSQL_USER,
+	password: process.env.MYSQL_PASSWORD
 };
 // var database = "world";
 var database = "classicmodels";
+// console.log("connectInfo: ", connectInfo);
 
-
-function getDatabaseConnection(connectInfo) {
-	let connection = mysql.createConnection(connectInfo);
-	connection.connect(function (err) {
-		if (err) {
-			console.log('error connecting: ' + err.stack);
-			return null;
-		}
-		console.log("Connected!");
-	});
-
-	return connection;
-}
 
 async function getSchema(req, res, database) {
 	let connection = await mysql.createConnection(connectInfo);
@@ -45,7 +33,7 @@ async function getSchema(req, res, database) {
 	Object.keys(schemaDoc).forEach(async function(table) {
 		try {
 			let getFieldsForTableSql = `SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '${database}' AND TABLE_NAME = '${table}';`;
-			console.log(getFieldsForTableSql);
+			// console.log(getFieldsForTableSql);
 			const [rows, fields] = await connection.query(getFieldsForTableSql);
 			schemaDoc[table]["columns"] = {};
 			rows.forEach(function(columnRow) {
@@ -63,7 +51,7 @@ async function getSchema(req, res, database) {
 			let getKeysForTableSql = `SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME 
 									  FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
 									  WHERE TABLE_SCHEMA = '${database}' and table_name='${table}' order by CONSTRAINT_NAME, COLUMN_NAME;`
-			console.log(getKeysForTableSql);
+			// console.log(getKeysForTableSql);
 			const [rows, fields] = await connection.query(getKeysForTableSql);
 			schemaDoc[table]["tableKeys"] = new Array();
 			rows.forEach(function(columnRow) {
@@ -82,14 +70,6 @@ async function getSchema(req, res, database) {
 	await connection.end();
 }
 
-getSchema(null, null, database)
-	.then(() => {
-    	console.log(JSON.stringify(schemaDoc, null, 4));
-	})
-	.catch(err => {
-    	console.log('error!', err);
-    	throw err;
-  	});
 
 
 var app = express();
@@ -98,7 +78,15 @@ app.get('/', function (req, res) {
 });
 
 app.get('/schema', function (req, res) {
-	getSchema(req, res, connection, database)
+	getSchema(null, null, database)
+	.then(() => {
+    	console.log(JSON.stringify(schemaDoc, null, 4));
+		res.json(schemaDoc);
+	})
+	.catch(err => {
+    	console.log('error!', err);
+    	throw err;
+  	});
 });
 
 app.listen(3001, function () {
